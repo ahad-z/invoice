@@ -1,7 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-
+use App\Http\Controllers\OrdersController;
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -16,3 +16,12 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     return view('invoice');
 });
+Route::get('/pdf', function () {
+    return view('invoicePrint');
+});
+
+Route::get('generate-pdf/{id}', [OrdersController::class, 'generatePDF'])->name('generate-pdf');
+
+
+Route::get('orders', [OrdersController::class, 'index'])->name('index');
+Route::post('orders-store', [OrdersController::class, 'store'])->name('orderStore');
