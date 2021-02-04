@@ -32,7 +32,7 @@
                     <table class="table">
                         <thead>
                             <tr>
-                                <th scope="col"><input type='checkbox' disabled></th>
+                                <th scope="col"><input type='checkbox' id="allSelect"></th>
                                 <th scope="col">Item No</th>
                                 <th scope="col">Item Name</th>
                                 <th scope="col">Quantity</th>
@@ -98,43 +98,44 @@
         </div>
     </div>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-    <!-- Option 1: jQuery and Bootstrap Bundle (includes Popper) -->
-  <!--   <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script> -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ho+j7jyWK8fNQe+A12Hb8AhRq26LrZ/JpcUGGOn+Y7RsweNrtN/tE3MoK7ZeZDyx" crossorigin="anonymous"></script>
 </body>
 </html>
 
 <script>
+    let Items = [];
+    let Allchecked = $('#allSelect');
+    let rowId = 0;
     $('#addRow').on('click', function() {
         let tableBody = $('#myTable')
         let row = `<tr>
                         <td>
-                        <input type='checkbox' name='record' id="singleRemove">
+                            <input item-id="` + (rowId) + `" type='checkbox' name='record' class="singleRemove" >
                         <td>
-                            <input class="form-control row-itemNo" type="text" id="itemNo"  />
+                            <input   class="form-control test row-itemNo" type="text" id="itemNo"  />
                         </td>
                         <td>
-                            <input class="form-control row-itemName" type="text"  id="itemName"  />
+                            <input class="form-control test row-itemName" type="text"  id="itemName"  />
                         </td>
                         <td>
-                            <input class="form-control row-quantity" type="number"  id="quantity"/>
+                            <input item-id="` + (rowId++) + `" class="form-control test row-quantity" type="number"  id="quantity"/>
                         </td>
                         <td>
-                            <input class="form-control row-price" type="number"  id="price"/>
+                            <input class="form-control test row-price" type="number"  id="price"/>
                         </td>
                         <td>
-                            <input class="form-control row-total" type="number" readonly id="total"/>
+                            <input class="form-control test row-total" type="number" readonly id="total"/>
                         </td>
                     </tr>`
         tableBody.append(row)
+        $(Allchecked).prop('checked', false)
     }) 
-    $('table').on('mouseup keyup', 'input[type=number]', () => calculateTotals());
-    let Items = []
+
+    $('table').on('mouseup keyup', 'input[type=number]', () => calculateTotals())
+
     function calculateTotals(){
         /*Row column*/
         let quantityElements = $('.row-quantity')
-        let priceElements    = $('.row-price')
-        let totalElements    = $('.row-total')
 
         /* Grand calculate */
         let taxPercentagetElement   = $('#row-tax-pecentage');
@@ -144,31 +145,38 @@
         let ammountPaidElement      = $('#row-ammount-paid');
         let ammountDueElement       = $('#row-ammount-due');
 
+        // console.log(removeBtn)
+
         let subTotal = 0
         let taxAmmount = 0
         let GrandTotal = 0
         $(quantityElements).each(function(i, e){
+
             if(i === 0 ){
                 Items = []
             }
-            let itemNoElement   = $('.row-itemNo:eq(' + i + ')');
+            let RowID    = e.getAttribute('item-id');
+            let itemNoElement   = $('.row-itemNo:eq(' + i + ')')
             let nameElement     = $('.row-itemName:eq(' + i + ')')
             let quantityElement = $('.row-quantity:eq(' + i + ')')
             let priceElement    = $('.row-price:eq(' + i + ')')
             let totalElement    = $('.row-total:eq(' + i + ')')
-
+            
            let total = quantityElement.val() * priceElement.val()
             totalElement.val(total)
             subTotal = subTotal + total
             Item = {
-                item_number: itemNoElement.val(),
+                item_id: RowID,
                 item_name: nameElement.val(),
+                item_number: itemNoElement.val(),
                 price: priceElement.val(),
                 quantity: quantityElement.val(),
                 product_total: totalElement.val(),
             }
             Items.push(Item)
+            
         })
+
         /*Calculate GrandTotal and calculate the Tax by percentage*/
         subTotalElement.val(subTotal)
         taxAmmount = (subTotalElement.val() * taxPercentagetElement.val())/100
@@ -179,29 +187,37 @@
 
         let dueAmmount = parseFloat(grandTotalElement.val() - parseFloat(ammountPaidElement.val()))
         ammountDueElement.val(parseFloat(dueAmmount))
+
     }
+
     $('#removeItem').on('click', function() {
-        $("#myTable").find('input[name="record"]').each(function() {
+        calculateTotals()
+        $(Allchecked).prop('checked', false)
+        $("#myTable").find('input[name="record"]').each(function(e, el) {
             if ($(this).is(":checked")) {
-                $(this).parents("tr").remove();
+                $(this).parents("tr").remove()
+                calculateTotals()
+                Items = Items.filter(function (item) {
+                    return item.item_id != $(el).attr('item-id');
+                })
             }
         });
+       
     })
 
-    $('#row-tax-pecentage').on('keyup', function(){
+    $('#row-tax-pecentage').bind('mouseup keyup', function(){
         calculateTotals()
     })
-    $('#row-ammount-paid').on('keyup', function(){
+    $('#row-ammount-paid').bind('mouseup keyup', function(){
         calculateTotals()
     })
     const url = '{{ route("orderStore") }}';
     const token = document.querySelector(`meta[name='csrf-token']`).content;
     $('#saveInvoice').on('click', function(e){
         e.preventDefault()
-        /*Customer Info*/
         let custName    = $('#custName').val()
         let custAddress = $('#custAddress').val()
-
+        console.log(Items)
         /*Invoice Details*/
         let itemNoElements     = $('.row-itemNo').val()
         let nameElements       = $('.row-itemName').val()
@@ -242,11 +258,11 @@
                 let ammountPaidElement = $('#row-ammount-paid').val('')
                 let ammountDueElement  = $('#row-ammount-due').val('')
                 let invoiceNotes       = $('#invoiceNotes').val('')
-                let quantityElements = $('.row-quantity').val('')
-                let priceElements    = $('.row-price').val('')
-                let totalElements    = $('.row-total').val('')
-                let custName    = $('#custName').val('')
-                let custAddress = $('#custAddress').val('')
+                let quantityElements   = $('.row-quantity').val('')
+                let priceElements      = $('.row-price').val('')
+                let totalElements      = $('.row-total').val('')
+                let custName           = $('#custName').val('')
+                let custAddress        = $('#custAddress').val('')
                 }
             },
             error:function(error){
@@ -255,4 +271,23 @@
         });
     })
 
+    /* All select */
+    $('#allSelect').on('change', function(e){
+
+        $("#myTable").find('input[name="record"]').each(function(i,e) {
+            if($(Allchecked).is(':checked') ){
+                $(this).prop('checked', true)
+            }else{
+                $(this).prop('checked', false)
+            }
+        });
+    })
+/*Check single Item check or not */
+    $("#myTable").on('change', 'input[type=checkbox]', function(e){
+        if($('.singleRemove:checked').length === $('.singleRemove').length){
+            $(Allchecked).prop('checked',true);
+        }else{
+            $(Allchecked).prop('checked',false);
+        }
+    })
 </script>
